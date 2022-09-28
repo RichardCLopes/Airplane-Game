@@ -6,16 +6,35 @@ canvas.height = window.innerHeight;
 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
 const globais = {};
+let frames = 0;
+
+planesimg = [
+  "./images/planes/plane_1_blue.png",
+  "./images/planes/plane_1_pink.png",
+  "./images/planes/plane_1_red.png",
+  "./images/planes/plane_1_yellow.png",
+  "./images/planes/plane_2_green.png",
+  "./images/planes/plane_2_red.png",
+  "./images/planes/plane_2_yellow.png",
+  "./images/planes/plane_3_blue.png",
+  "./images/planes/plane_3_green.png",
+  "./images/planes/plane_3_red.png",
+  "./images/planes/plane_3_yellow.png",
+];
 
 //---------IMAGES
 const plane = new Image();
-plane.src = "./images/planes/plane_2/plane_2_blue.png";
+plane.src = "./images/planes/plane_2_blue.png";
 const hill = new Image();
 hill.src = "./images/background/floor.png";
 const sky = new Image();
 sky.src = "./images/background/sky.png";
 const itf = new Image();
 itf.src = "./images/interface/panel.png";
+const explo = new Image();
+explo.src = "./images/explosion/explosion.png";
+const sunn = new Image();
+sunn.src = "./images/background/sun.png";
 
 //-------PLAYER
 function criaPlayer() {
@@ -26,9 +45,9 @@ function criaPlayer() {
     altura: 110,
     fly(num) {
       if (num == 1 && player.y > 50) {
-        player.y -= 5;
+        player.y -= 7.5;
       } else if (num == 2 && player.y < canvas.height - 300) {
-        player.y += 5;
+        player.y += 7.5;
       }
     },
     desenha() {
@@ -103,6 +122,139 @@ const panel = {
   },
 };
 
+//---------EXPLOSION
+function explos() {
+  const explosion = {
+    x: 0,
+    y: 0,
+    largura: 500,
+    altura: 500,
+    xbn: 0,
+    ybn: 0,
+    movimentos: [
+      { x: 0, y: 0 },
+      { x: 500, y: 0 },
+      { x: 1000, y: 0 },
+      { x: 0, y: 500 },
+      { x: 500, y: 500 },
+      { x: 1000, y: 500 },
+      { x: 0, y: 1000 },
+      { x: 500, y: 1000 },
+      { x: 1000, y: 1000 },
+    ],
+    frameatual: 0,
+    attframe() {
+      const intervaloDeFrames = 25;
+      const passouOIntervalo = frames % intervaloDeFrames === 0;
+
+      if (passouOIntervalo) {
+        const baseDoIncremento = 1;
+        const incremento = baseDoIncremento + explosion.frameatual;
+        const baseRepeticao = explosion.movimentos.length;
+        explosion.frameatual = incremento % baseRepeticao;
+      }
+    },
+    desenha() {
+      explosion.attframe();
+      const { x, y } = explosion.movimentos[explosion.frameatual];
+      ctx.drawImage(
+        explo,
+        x,
+        y,
+        explosion.largura,
+        explosion.altura,
+        explosion.xbn,
+        explosion.ybn,
+        400,
+        400
+      );
+    },
+  };
+  return explosion;
+}
+
+alturas = [50, 200, 350, 500, 650];
+
+function sorteiaAviao() {
+  avirandom = new Image();
+  var randomNumber = Math.floor(Math.random() * 11);
+  avirandom.src = planesimg[randomNumber];
+  return avirandom;
+}
+
+function criaAvioes() {
+  const aviao = {
+    x: canvas.width / 2,
+    y: canvas.height / 2,
+    largura: 200,
+    altura: 110,
+    pares: [],
+    atualiza() {
+      const passouperiodo = frames % 250 === 0;
+
+      if (passouperiodo) {
+        let n1 = Math.floor(Math.random() * 5);
+        let n2 = -1;
+        do {
+          n2 = Math.floor(Math.random() * 5);
+        } while (n1 == n2);
+        aviao.pares.push(
+          {
+            x: canvas.width,
+            y: alturas[n1],
+            aviurl: sorteiaAviao(),
+          },
+          {
+            x: canvas.width,
+            y: alturas[n2],
+            aviurl: sorteiaAviao(),
+          }
+        );
+      }
+
+      aviao.pares.forEach(function (loc) {
+        loc.x -= 2;
+
+        if (aviao.temColisao(loc)) {
+          globais.explosion.xbn = globais.player.x - 50;
+          globais.explosion.ybn = globais.player.y - 100;
+          globais.explosion.desenha();
+          //mudaTela(telas.inicio);
+        }
+
+        if (loc.x + aviao.largura <= 0) {
+          aviao.pares.shift();
+        }
+      });
+    },
+    temColisao(loc) {
+      const cimaaviao = globais.player.y;
+      const baixoaviao = globais.player.y + globais.player.altura;
+      if (
+        globais.player.x + globais.player.largura >= loc.x &&
+        cimaaviao >= loc.y &&
+        cimaaviao <= loc.y + 110
+      ) {
+        return true;
+      } else if (
+        globais.player.x + globais.player.largura >= loc.x &&
+        baixoaviao >= loc.y &&
+        baixoaviao <= loc.y + 110
+      ) {
+        return true;
+      } else {
+        return false;
+      }
+    },
+    desenha() {
+      aviao.pares.forEach(function (loc) {
+        ctx.drawImage(loc.aviurl, loc.x, loc.y, aviao.largura, aviao.altura);
+      });
+    },
+  };
+  return aviao;
+}
+
 let telaAtiva = {};
 function mudaTela(novatela) {
   telaAtiva = novatela;
@@ -118,6 +270,8 @@ const telas = {
       globais.player = criaPlayer();
       globais.floor = moveFloor();
       globais.backsky = moveSky();
+      globais.planes = criaAvioes();
+      globais.explosion = explos();
     },
     desenha() {
       globais.backsky.desenha();
@@ -141,6 +295,7 @@ telas.game = {
     globais.backsky.desenha();
     globais.floor.desenha();
     globais.player.desenha();
+    globais.planes.desenha();
   },
   movi(num) {
     globais.player.fly(num);
@@ -148,13 +303,14 @@ telas.game = {
   atualiza() {
     globais.backsky.atualiza();
     globais.floor.atualiza();
-    globais.player.atualiza();
+    globais.planes.atualiza();
   },
 };
 
 function loop() {
   telaAtiva.desenha();
   telaAtiva.atualiza();
+  frames += 1;
   requestAnimationFrame(loop);
 }
 

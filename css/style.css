@@ -7,7 +7,7 @@
 body {
   min-height: 100%;
   max-width: 100%;
-  background: lightskyblue;
+  background: rgb(0, 200, 180);
 }
 
 canvas {
