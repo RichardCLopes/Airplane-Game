@@ -7,6 +7,7 @@ ctx.fillRect(0, 0, canvas.width, canvas.height);
 
 const globais = {};
 let frames = 0;
+let highscore = 0;
 
 planesimg = [
   "./images/planes/plane_1_blue.png",
@@ -182,6 +183,60 @@ function sorteiaAviao() {
   return avirandom;
 }
 
+function criaPlacar() {
+  const placar = {
+    point: 0,
+    desenha() {
+      ctx.font = '40px "Luckiest Guy"';
+      ctx.textAlign = "center";
+      ctx.fillStyle = "black";
+      ctx.fillText(
+        `Pontuação ${placar.point}`,
+        canvas.width / 2,
+        canvas.height - 50
+      );
+    },
+    atualiza() {
+      const intervaloDeFrames = 150;
+      const passouOIntervalo = frames % intervaloDeFrames === 0;
+
+      if (passouOIntervalo) {
+        placar.point += 1;
+      }
+    },
+  };
+  return placar;
+}
+
+function msgGameOver() {
+  const msgover = {
+    point: 0,
+    desenha() {
+      ctx.font = '40px "Luckiest Guy"';
+      ctx.textAlign = "center";
+      ctx.fillStyle = "black";
+      ctx.fillText(`Game Over`, canvas.width / 2, canvas.height / 2 - 70);
+      ctx.fillText(
+        `Pontuação: ${msgover.point}`,
+        canvas.width / 2,
+        canvas.height / 2
+      );
+      ctx.fillText(
+        `Maior pontuação: ${highscore}`,
+        canvas.width / 2,
+        canvas.height / 2 + 70
+      );
+    },
+    atualiza() {
+      msgover.point = globais.placar.point;
+      if (highscore < msgover.point) {
+        highscore = msgover.point;
+      }
+    },
+  };
+  return msgover;
+}
+
 function criaAvioes() {
   const aviao = {
     x: canvas.width / 2,
@@ -219,7 +274,7 @@ function criaAvioes() {
           globais.explosion.xbn = globais.player.x - 50;
           globais.explosion.ybn = globais.player.y - 100;
           globais.explosion.desenha();
-          //mudaTela(telas.inicio);
+          mudaTela(telas.gameover);
         }
 
         if (loc.x + aviao.largura <= 0) {
@@ -272,6 +327,7 @@ const telas = {
       globais.backsky = moveSky();
       globais.planes = criaAvioes();
       globais.explosion = explos();
+      globais.msgover = msgGameOver();
     },
     desenha() {
       globais.backsky.desenha();
@@ -290,12 +346,15 @@ const telas = {
 };
 
 telas.game = {
-  inicializa() {},
+  inicializa() {
+    globais.placar = criaPlacar();
+  },
   desenha() {
     globais.backsky.desenha();
     globais.floor.desenha();
     globais.player.desenha();
     globais.planes.desenha();
+    globais.placar.desenha();
   },
   movi(num) {
     globais.player.fly(num);
@@ -304,6 +363,20 @@ telas.game = {
     globais.backsky.atualiza();
     globais.floor.atualiza();
     globais.planes.atualiza();
+    globais.placar.atualiza();
+  },
+};
+
+telas.gameover = {
+  desenha() {
+    panel.desenha();
+    globais.msgover.desenha();
+  },
+  atualiza() {
+    globais.msgover.atualiza();
+  },
+  keydown() {
+    mudaTela(telas.inicio);
   },
 };
 
@@ -315,7 +388,7 @@ function loop() {
 }
 
 window.addEventListener("keydown", (event) => {
-  if (telaAtiva == telas.inicio) {
+  if (telaAtiva == telas.inicio || telaAtiva == telas.gameover) {
     telaAtiva.keydown();
   } else {
     switch (event.key) {
