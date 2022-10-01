@@ -8,6 +8,8 @@ ctx.fillRect(0, 0, canvas.width, canvas.height);
 const globais = {};
 let frames = 0;
 let highscore = 0;
+let framecall = 0;
+let colisao = 0;
 
 planesimg = [
   "./images/planes/plane_1_blue.png",
@@ -41,18 +43,32 @@ sunn.src = "./images/background/sun.png";
 function criaPlayer() {
   const player = {
     x: 50,
-    y: (canvas.height - 250) / 2,
+    y: 350,
     largura: 200,
     altura: 110,
+    frameatt: 0,
+    linha: 2,
+    move: 0, //1-up, 2-down
     fly(num) {
-      if (num == 1 && player.y > 50) {
-        player.y -= 7.5;
-      } else if (num == 2 && player.y < canvas.height - 300) {
-        player.y += 7.5;
+      if (num == 1 && player.linha > 0 && frames > player.frameatt) {
+        player.frameatt = frames + 50;
+        player.linha -= 1;
+        player.move = 1;
+      } else if (num == 2 && player.linha < 4 && frames > player.frameatt) {
+        player.frameatt = frames + 50;
+        player.linha += 1;
+        player.move = 3;
       }
     },
     desenha() {
       ctx.drawImage(plane, player.x, player.y, player.largura, player.altura);
+    },
+    atualiza() {
+      if (player.move == 1 && frames < player.frameatt) {
+        player.y -= 3;
+      } else if (player.move == 3 && frames < player.frameatt) {
+        player.y += 3;
+      }
     },
   };
   return player;
@@ -156,6 +172,7 @@ function explos() {
       }
     },
     desenha() {
+      console.log(frames);
       explosion.attframe();
       const { x, y } = explosion.movimentos[explosion.frameatual];
       ctx.drawImage(
@@ -191,7 +208,7 @@ function criaPlacar() {
       ctx.textAlign = "center";
       ctx.fillStyle = "black";
       ctx.fillText(
-        `Pontuação ${placar.point}`,
+        `Score: ${placar.point}`,
         canvas.width / 2,
         canvas.height - 50
       );
@@ -217,12 +234,12 @@ function msgGameOver() {
       ctx.fillStyle = "black";
       ctx.fillText(`Game Over`, canvas.width / 2, canvas.height / 2 - 70);
       ctx.fillText(
-        `Pontuação: ${msgover.point}`,
+        `Score: ${msgover.point}`,
         canvas.width / 2,
         canvas.height / 2
       );
       ctx.fillText(
-        `Maior pontuação: ${highscore}`,
+        `High Score: ${highscore}`,
         canvas.width / 2,
         canvas.height / 2 + 70
       );
@@ -237,6 +254,21 @@ function msgGameOver() {
   return msgover;
 }
 
+const msgstart = {
+  desenha() {
+    ctx.font = '35px "Luckiest Guy"';
+    ctx.textAlign = "center";
+    ctx.fillStyle = "black";
+    ctx.fillText("W - Move up", canvas.width / 2, canvas.height / 2 - 70);
+    ctx.fillText("S - Move down", canvas.width / 2, canvas.height / 2);
+    ctx.fillText(
+      "Press any key to start",
+      canvas.width / 2,
+      canvas.height / 2 + 70
+    );
+  },
+};
+
 function criaAvioes() {
   const aviao = {
     x: canvas.width / 2,
@@ -245,7 +277,7 @@ function criaAvioes() {
     altura: 110,
     pares: [],
     atualiza() {
-      const passouperiodo = frames % 250 === 0;
+      const passouperiodo = frames % 300 === 0;
 
       if (passouperiodo) {
         let n1 = Math.floor(Math.random() * 5);
@@ -267,13 +299,24 @@ function criaAvioes() {
         );
       }
 
+      if (colisao == 1) {
+        globais.explosion.desenha();
+      }
       aviao.pares.forEach(function (loc) {
         loc.x -= 2;
 
         if (aviao.temColisao(loc)) {
           globais.explosion.xbn = globais.player.x - 50;
           globais.explosion.ybn = globais.player.y - 100;
-          globais.explosion.desenha();
+          if (colisao == 0) {
+            colisao = 1;
+          }
+          if (framecall == 0) {
+            framecall = frames + 100;
+          }
+        }
+
+        if (frames == framecall) {
           mudaTela(telas.gameover);
         }
 
@@ -288,13 +331,13 @@ function criaAvioes() {
       if (
         globais.player.x + globais.player.largura >= loc.x &&
         cimaaviao >= loc.y &&
-        cimaaviao <= loc.y + 110
+        cimaaviao <= loc.y
       ) {
         return true;
       } else if (
         globais.player.x + globais.player.largura >= loc.x &&
         baixoaviao >= loc.y &&
-        baixoaviao <= loc.y + 110
+        baixoaviao <= loc.y
       ) {
         return true;
       } else {
@@ -312,6 +355,8 @@ function criaAvioes() {
 
 let telaAtiva = {};
 function mudaTela(novatela) {
+  framecall = 0;
+  colisao = 0;
   telaAtiva = novatela;
   if (telaAtiva.inicializa) {
     telaAtiva.inicializa();
@@ -334,6 +379,7 @@ const telas = {
       globais.floor.desenha();
       globais.player.desenha();
       panel.desenha();
+      msgstart.desenha();
     },
     keydown() {
       mudaTela(telas.game);
@@ -364,6 +410,7 @@ telas.game = {
     globais.floor.atualiza();
     globais.planes.atualiza();
     globais.placar.atualiza();
+    globais.player.atualiza();
   },
 };
 
